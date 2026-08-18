@@ -122,7 +122,7 @@
             border-radius:6px;z-index:99999;font-size:12px;
             transition:opacity 2s ease;border:1px solid #4caf50;white-space:nowrap;
         `;
-        author.innerHTML = `由小红书 <a href="${AUTHOR_URL}" target="_blank" style="color:#4caf50;text-decoration:none;">@起飞吧！凤凰牌飞机！</a> 制作 | 开源免费 禁止倒卖 | <Take off! Phoenix brand aircraft!="${AUTHOR_URL}" target="_blank" style="color:#ff9800;text-decoration:none;">🎁 关注UP主</a>`;
+        author.innerHTML = `由小红书 <a href="${AUTHOR_URL}" target="_blank" style="color:#4caf50;text-decoration:none;">@起飞吧！凤凰牌飞机！</a> 制作 | 开源免费 禁止倒卖 | <a href="${AUTHOR_URL}" target="_blank" style="color:#ff9800;text-decoration:none;">🎁 关注UP主</a>`;
         document.body.appendChild(author);
 
         setTimeout(() => {
@@ -246,7 +246,7 @@
             <div style="margin-top:12px;padding-top:12px;border-top:1px solid #444;text-align:center;">
                 <div style="font-size:12px;color:#4caf50;margin-bottom:4px;">📌 小红书 <a href="${AUTHOR_URL}" target="_blank" style="color:#4caf50;text-decoration:none;">@起飞吧！凤凰牌飞机！</a> 制作</div>
                 <div style="font-size:10px;color:#888;margin-bottom:8px;">开源免费 · 禁止倒卖 · 欢迎分享</div>
-                <div><Take off! Phoenix brand aircraft!="${AUTHOR_URL}" target="_blank" style="background:#ff9800;color:#fff;padding:5px 12px;border-radius:20px;text-decoration:none;font-size:12px;">🎁 关注UP主</a></div>
+                <div><a href="${AUTHOR_URL}" target="_blank" style="background:#ff9800;color:#fff;padding:5px 12px;border-radius:20px;text-decoration:none;font-size:12px;">🎁 关注UP主</a></div>
             </div>
         `;
         document.body.appendChild(help);
@@ -286,7 +286,7 @@
                 <div style="font-weight:bold;font-size:18px;">🗺️ 地图控制台</div>
                 <div style="font-size:12px;color:#888;">ArcGIS 卫星图</div>
                 <div style="font-size:10px;color:#4caf50;margin-top:4px;">
-                    <Take off! Phoenix brand aircraft!="${AUTHOR_URL}" target="_blank" style="color:#4caf50;text-decoration:none;">@起飞吧！凤凰牌飞机！</a> 开源免费
+                    <a href="${AUTHOR_URL}" target="_blank" style="color:#4caf50;text-decoration:none;">@起飞吧！凤凰牌飞机！</a> 开源免费
                 </div>
             </div>
             <button id="reload-map-btn" style="width:100%;padding:10px;margin-bottom:8px;background:#1976d2;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:14px;">🔄 重新加载地图</button>
