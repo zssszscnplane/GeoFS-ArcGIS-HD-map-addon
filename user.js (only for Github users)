@@ -1,0 +1,395 @@
+// ==UserScript==
+// @name         ArcGISSatellite Map (Original stable and console)
+// @namespace    https://www.geo-fs.com/geofs.php?v=3.9
+// @version      3.0
+// @description  Original stable ArcGIS | Press the D key open the console | Open source and free | No reselling
+// @author       zssszscnplane
+// @match        https://www.geo-fs.com/geofs.php*
+// @grant        none
+// @run-at       document-end
+// @license      GPL-3.0
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    const COPYRIGHT = "© Github @zssszscnplane | Open source and free. Reselling is prohibited | Github:https://github.com/zssszscnplane ";
+    const AUTHOR_URL = "https://github.com/zssszscnplane";
+
+    const ARCGIS_URLS = [
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        'https://ibasemaps.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+    ];
+
+    window.__GeoFS_Copyright = COPYRIGHT;
+
+    let toastQueue = [];
+    let isShowingToast = false;
+
+    function showTip(text, isOk, duration = 3000) {
+        toastQueue.push({ text, isOk, duration });
+        if (!isShowingToast) processToastQueue();
+    }
+
+    function processToastQueue() {
+        if (toastQueue.length === 0) {
+            isShowingToast = false;
+            return;
+        }
+        isShowingToast = true;
+        const { text, isOk, duration } = toastQueue.shift();
+
+        const tip = document.createElement('div');
+        tip.className = 'geo-tip';
+        tip.style.cssText = `
+            position: fixed;top:20px;left:50%;transform:translateX(-50%);
+            background:${isOk ? 'rgba(0,160,0,0.85)' : 'rgba(190,0,0,0.85)'};
+            color:#fff;padding:10px 22px;border-radius:8px;z-index:99999;
+            font-size:14px;transition:all 0.7s ease;backdrop-filter:blur(4px);
+            pointer-events:none;font-weight:500;box-shadow:0 2px 8px rgba(0,0,0,0.2);
+            max-width:90vw;text-align:center;
+        `;
+        tip.textContent = text;
+        document.body.appendChild(tip);
+
+        setTimeout(() => {
+            if (!tip.isConnected) {
+                processToastQueue();
+                return;
+            }
+            tip.style.transform = 'translateX(-50%) translateY(-70px)';
+            tip.style.opacity = '0';
+            setTimeout(() => {
+                tip.remove();
+                processToastQueue();
+            }, 700);
+        }, duration);
+    }
+
+
+    let sideTipQueue = [];
+    let isShowingSideTip = false;
+
+    function showSideTip(text, isOk, duration = 2000) {
+        sideTipQueue.push({ text, isOk, duration });
+        if (!isShowingSideTip) processSideTipQueue();
+    }
+
+    function processSideTipQueue() {
+        if (sideTipQueue.length === 0) {
+            isShowingSideTip = false;
+            return;
+        }
+        isShowingSideTip = true;
+        const { text, isOk, duration } = sideTipQueue.shift();
+
+        const tip = document.createElement('div');
+        tip.className = 'geo-side-tip';
+        tip.style.cssText = `
+            position: fixed;bottom:20px;left:20px;
+            background:${isOk ? 'rgba(0,160,0,0.75)' : 'rgba(190,0,0,0.75)'};
+            color:#fff;padding:8px 16px;border-radius:8px;z-index:99998;
+            font-size:13px;transition:all 0.5s ease;backdrop-filter:blur(4px);
+            pointer-events:none;font-weight:500;box-shadow:0 2px 6px rgba(0,0,0,0.2);
+            max-width:280px;text-align:left;
+        `;
+        tip.textContent = text;
+        document.body.appendChild(tip);
+
+        setTimeout(() => {
+            if (!tip.isConnected) {
+                processSideTipQueue();
+                return;
+            }
+            tip.style.opacity = '0';
+            tip.style.transform = 'translateX(-20px)';
+            setTimeout(() => {
+                tip.remove();
+                processSideTipQueue();
+            }, 500);
+        }, duration);
+    }
+
+    function showAuthor() {
+        if (window._authorShown) return;
+        window._authorShown = true;
+
+        const author = document.createElement('div');
+        author.style.cssText = `
+            position: fixed;top:65px;left:50%;transform:translateX(-50%);
+            background:rgba(0,0,0,0.8);color:#fff;padding:6px 14px;
+            border-radius:6px;z-index:99999;font-size:12px;
+            transition:opacity 2s ease;border:1px solid #4caf50;white-space:nowrap;
+        `;
+        author.innerHTML = `By Github <a href="${AUTHOR_URL}" target="_blank" style="color:#4caf50;text-decoration:none;">@zssszscnplane！</a> prduce | Open source and free.Reselling is prohibited. | <a href="${AUTHOR_URL}" target="_blank" style="color:#ff9800;text-decoration:none;">🎁 Follow me</a>`;
+        document.body.appendChild(author);
+
+        setTimeout(() => {
+            if (!author.isConnected) return;
+            author.style.opacity = 0;
+            setTimeout(() => author.remove(), 2000);
+        }, 5000);
+    }
+
+    console.log('%c🗺️ ArcGIS satellite map v2.9 | Author: @zssszscnplane', 'color: #4caf50; font-size: 12px;');
+    console.log('%c📌 Open source and free.Reselling is prohibited. | Press the D key to open the console', 'color: #ff9800; font-size: 11px;');
+
+    let currentLayer = null;
+    let isLoading = false;
+
+    function removeOldLayers(viewer) {
+        if (viewer?.imageryLayers) viewer.imageryLayers.removeAll();
+    }
+
+    async function loadMapCore(showTipOnSuccess = true) {
+        if (isLoading) return false;
+        isLoading = true;
+
+        try {
+            if (!window.geofs?.api?.viewer || !window.Cesium) throw new Error('The game is not ready.');
+            const viewer = window.geofs.api.viewer;
+            removeOldLayers(viewer);
+
+            for (let i = 0; i < ARCGIS_URLS.length; i++) {
+                const url = ARCGIS_URLS[i];
+                try {
+                    const tileProvider = new Cesium.UrlTemplateImageryProvider({ url, maximumLevel: 19 });
+                    await tileProvider.readyPromise;
+                    currentLayer = viewer.imageryLayers.addImageryProvider(tileProvider);
+                    
+                    // Node switching prompt (displayed on the left)
+                    if (i > 0) {
+                        showSideTip(`📍 It has been switched to the standby node ${i}`, true, 2000);
+                    }
+                    
+                    if (showTipOnSuccess) showTip('✅ The map has loaded successfully.', true);
+                    return true;
+                } catch (e) {
+                    if (i < ARCGIS_URLS.length - 1) {
+                        showSideTip(`⚠️ node ${i+1} Failure. Try the next one...`, false, 1500);
+                    }
+                }
+            }
+            throw new Error('All failures');
+        } finally {
+            isLoading = false;
+        }
+    }
+
+    async function reloadMap() {
+        if (!window.geofs?.api?.viewer) {
+            showTip('The game is not ready.', false);
+            return false;
+        }
+        showTip('🔄 Reloading the map...', true, 2000);
+        try {
+            return await loadMapCore(true);
+        } catch (e) {
+            showTip('❌ All map sources failed to load', false);
+            return false;
+        }
+    }
+
+
+    async function clearCache() {
+        if (!confirm('⚠️ Clear the cache. Are you sure to continue？')) return;
+        let count = 0;
+
+        for (const key in localStorage) {
+            if (key.includes('tile') || key.includes('imagery') || key.includes('cesium')) {
+                localStorage.removeItem(key);
+                count++;
+            }
+        }
+
+        try {
+            await indexedDB.deleteDatabase('CesiumTileCache');
+            count++;
+        } catch (e) {}
+
+        showTip(`🗑️ Cleaned ${count} Item cache, it is recommended to refresh`, true, 4000);
+    }
+
+
+    function showTileCount() {
+        try {
+            const sfc = window.geofs?.api?.viewer?.scene?.globe?._surface;
+            const loaded = sfc?._tilesToRender?.length || 0;
+            const loading = (sfc?._tileLoadQueueHigh?.length || 0) + (sfc?._tileLoadQueueMedium?.length || 0);
+            showTip(`📊 ${loaded} In rendering / ${loading} loading`, true);
+        } catch (e) {
+            showTip('Statistical failure', false);
+        }
+    }
+
+    function showHelp() {
+        const help = document.createElement('div');
+        help.style.cssText = `
+            position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+            background:rgba(20,20,30,0.98);padding:24px;border-radius:16px;z-index:100001;
+            min-width:320px;border:1px solid #444;font-family:sans-serif;color:#fff;
+            box-shadow:0 8px 24px rgba(0,0,0,0.5);
+        `;
+        help.innerHTML = `
+            <div style="font-size:18px;font-weight:bold;margin-bottom:15px;text-align:center;">❓ use help</div>
+            <div style="margin-bottom:12px;font-size:13px;line-height:1.6;">
+                <p><strong>🗺️ Current map</strong><br>ArcGIS Satellite image (original stable source backup node)</p>
+                <p><strong>🔧 common problem</strong><br>• fail to load → Press「Reload the map」<br>• The picture is blurry. → Wait for a few seconds to load the high-definition tiles<br>• The game is lagging → Clear the cache to release memory.<br>• The map shows that the loading was successful but has not been changed？ → Try reloading</p>
+                <p><strong>💡 tips</strong><br>• Press the D key to open/close the console<br>• There will be a prompt after the map is successfully loaded.</p>
+            </div>
+            <div style="margin-bottom:12px;font-size:13px;line-height:1.6;border-top:1px solid #444;padding-top:12px;">
+                <p><strong>🛠️ Regarding the use of Tampermonkey</strong><br>
+                📖 <a href="https://www.tampermonkey.net/" target="_blank" style="color:#4caf50;text-decoration:none;">the official website of Templemonkey</a><br>
+                </p>
+            </div>
+            <div style="margin-top:12px;padding-top:12px;border-top:1px solid #444;text-align:center;">
+                <div style="font-size:12px;color:#4caf50;margin-bottom:4px;">📌 Github <a href="${AUTHOR_URL}" target="_blank" style="color:#4caf50;text-decoration:none;">@zssszscnplane</a> produce</div>
+                <div style="font-size:10px;color:#888;margin-bottom:8px;">Open source and free · No reselling · Welcome to share</div>
+                <div><a href="${AUTHOR_URL}" target="_blank" style="background:#ff9800;color:#fff;padding:5px 12px;border-radius:20px;text-decoration:none;font-size:12px;">🎁 Follow the UP master</a></div>
+            </div>
+        `;
+        document.body.appendChild(help);
+
+        const close = (e) => {
+            if (e.key === 'Escape' || (e.type === 'click' && !help.contains(e.target))) {
+                help.remove();
+                document.removeEventListener('click', close);
+                document.removeEventListener('keydown', close);
+            }
+        };
+        setTimeout(() => {
+            document.addEventListener('click', close);
+            document.addEventListener('keydown', close);
+        }, 100);
+    }
+
+
+    let panel = null;
+    let isDragging = false, startX, startY, panelX, panelY;
+
+    function showPanel() {
+        if (panel) { panel.remove(); panel = null; return; }
+
+        panel = document.createElement('div');
+        panel.style.cssText = `
+            position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+            background:rgba(20,20,30,0.85);backdrop-filter:blur(12px);
+            padding:20px;border-radius:16px;z-index:100000;
+            min-width:280px;box-shadow:0 8px 24px rgba(0,0,0,0.5);
+            border:1px solid rgba(255,255,255,0.2);
+            font-family:sans-serif;color:#fff;cursor:move;user-select:none;
+        `;
+        panel.innerHTML = `
+            <div style="cursor:pointer;position:absolute;top:12px;right:12px;font-size:20px;line-height:1;width:24px;height:24px;text-align:center;border-radius:50%;background:rgba(255,255,255,0.1);" id="close-panel-btn">✕</div>
+            <div style="text-align:center;margin-bottom:16px;">
+                <div style="font-weight:bold;font-size:18px;">🗺️ Map Console</div>
+                <div style="font-size:12px;color:#888;">ArcGIS satellite imagery</div>
+                <div style="font-size:10px;color:#4caf50;margin-top:4px;">
+                    <a href="${AUTHOR_URL}" target="_blank" style="color:#4caf50;text-decoration:none;">@zssszscnplane</a> Open source and free
+                </div>
+            </div>
+            <button id="reload-map-btn" style="width:100%;padding:10px;margin-bottom:8px;background:#1976d2;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:14px;">🔄 Reload the map</button>
+            <button id="clear-cache-btn" style="width:100%;padding:10px;margin-bottom:8px;background:#f57c00;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:14px;">🗑️ clear cache</button>
+            <button id="tile-count-btn" style="width:100%;padding:10px;margin-bottom:8px;background:#7b1fa2;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:14px;">📊 Quantity of tiles</button>
+            <button id="help-btn" style="width:100%;padding:10px;margin-bottom:8px;background:#555;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:14px;">❓ help</button>
+            <button id="donate-btn" style="width:100%;padding:10px;margin-bottom:0;background:#ff9800;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:14px;">🎁 Follow me.</button>
+            <div style="font-size:10px;color:#666;text-align:center;margin-top:12px;">Press D or ESC to close | Dragable | No reselling</div>
+        `;
+        document.body.appendChild(panel);
+
+        // drag
+        panel.addEventListener('mousedown', e => {
+            if (e.target.closest('button, a, #close-panel-btn')) return;
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            const r = panel.getBoundingClientRect();
+            panelX = r.left;
+            panelY = r.top;
+            panel.style.transition = 'none';
+            e.preventDefault();
+        });
+
+        window.addEventListener('mousemove', e => {
+            if (!isDragging) return;
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            let l = panelX + dx;
+            let t = panelY + dy;
+            l = Math.max(0, Math.min(l, window.innerWidth - panel.offsetWidth));
+            t = Math.max(0, Math.min(t, window.innerHeight - panel.offsetHeight));
+            panel.style.left = l + 'px';
+            panel.style.top = t + 'px';
+            panel.style.transform = 'none';
+        });
+
+        window.addEventListener('mouseup', () => isDragging = false);
+
+        // 按钮
+        document.getElementById('reload-map-btn').onclick = async () => {
+            await reloadMap();
+            panel?.remove(); 
+            panel = null;
+        };
+        document.getElementById('clear-cache-btn').onclick = () => { 
+            clearCache(); 
+            panel?.remove(); 
+            panel = null; 
+        };
+        document.getElementById('tile-count-btn').onclick = () => { 
+            showTileCount(); 
+            panel?.remove(); 
+            panel = null; 
+        };
+        document.getElementById('help-btn').onclick = () => { 
+            showHelp(); 
+            panel?.remove(); 
+            panel = null; 
+        };
+        document.getElementById('donate-btn').onclick = () => { 
+            window.open(AUTHOR_URL, '_blank'); 
+            panel?.remove(); 
+            panel = null; 
+        };
+        document.getElementById('close-panel-btn').onclick = () => { 
+            panel.remove(); 
+            panel = null; 
+        };
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') { 
+                panel?.remove(); 
+                panel = null; 
+            }
+        });
+    }
+
+
+    document.addEventListener('keydown', e => {
+        if ((e.key === 'd' || e.key === 'D') && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
+            e.preventDefault();
+            showPanel();
+        }
+    });
+
+
+    function initMap() {
+        if (!window.geofs?.api?.viewer || !window.Cesium) {
+            setTimeout(initMap, 800);
+            return;
+        }
+
+        showTip('🔄 The ArcGIS satellite map is being loaded...', true, 2000);
+        loadMapCore(false).then(success => {
+            if (success) {
+                showTip("✅ The original ArcGIS map has been loaded successfully. | If the map is not displayed, please press the D key to open the control panel and reload.", true, 5000);
+                showAuthor();
+            } else {
+                showTip("❌ The map failed to load. Press the D key and try again.", false, 4000);
+            }
+        });
+    }
+
+    initMap();
+})();
