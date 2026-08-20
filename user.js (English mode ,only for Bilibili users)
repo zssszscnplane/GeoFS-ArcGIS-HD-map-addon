@@ -122,7 +122,7 @@
             border-radius:6px;z-index:99999;font-size:12px;
             transition:opacity 2s ease;border:1px solid #4caf50;white-space:nowrap;
         `;
-        author.innerHTML = `由Bilibili <a href="${AUTHOR_URL}" target="_blank" style="color:#4caf50;text-decoration:none;">@我是小猪05！</a> prduce | Open source and free.Reselling is prohibited. | <a href="${AUTHOR_URL}" target="_blank" style="color:#ff9800;text-decoration:none;">🎁 关注UP主</a>`;
+        author.innerHTML = `由Bilibili <a href="${AUTHOR_URL}" target="_blank" style="color:#4caf50;text-decoration:none;">@我是小猪05！</a> prduce | Open source and free.Reselling is prohibited. | <a href="${AUTHOR_URL}" target="_blank" style="color:#ff9800;text-decoration:none;">🎁 Follow the UP master.</a>`;
         document.body.appendChild(author);
 
         setTimeout(() => {
@@ -235,7 +235,7 @@
             <div style="font-size:18px;font-weight:bold;margin-bottom:15px;text-align:center;">❓ use help</div>
             <div style="margin-bottom:12px;font-size:13px;line-height:1.6;">
                 <p><strong>🗺️ Current map</strong><br>ArcGIS Satellite image (original stable source backup node)</p>
-                <p><strong>🔧 common problem</strong><br>• fail to load → 点击「Reload the map」<br>• The picture is blurry. → Wait for a few seconds to load the high-definition tiles<br>• The game is lagging → Clear the cache to release memory.<br>• The map shows that the loading was successful but has not been changed？ → Try reloading</p>
+                <p><strong>🔧 common problem</strong><br>• fail to load → Press「Reload the map」<br>• The picture is blurry. → Wait for a few seconds to load the high-definition tiles<br>• The game is lagging → Clear the cache to release memory.<br>• The map shows that the loading was successful but has not been changed？ → Try reloading</p>
                 <p><strong>💡 tips</strong><br>• Press the D key to open/close the console<br>• There will be a prompt after the map is successfully loaded.</p>
             </div>
             <div style="margin-bottom:12px;font-size:13px;line-height:1.6;border-top:1px solid #444;padding-top:12px;">
